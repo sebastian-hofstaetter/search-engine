@@ -11,33 +11,19 @@ using BenchmarkDotNet.Running;
 
 namespace stopwords
 {
-    public sealed class Int64EqualityComparer : IEqualityComparer<long>
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Equals(long x, long y)
-        {
-            return x.Equals(y);
-        }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int GetHashCode(long obj)
-        {
-            return obj.GetHashCode(); //(unchecked((int)((long)obj)) ^ (int)(obj >> 32));
-        }
-    }
-
-    [DisassemblyDiagnoser(printAsm: true, printSource: true, recursiveDepth: 3)]
+    //[DisassemblyDiagnoser(printAsm: true, printSource: true, recursiveDepth: 3)]
     //[HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.BranchInstructions)]
 
     public class StopWordChecker
     {
-
         private static string[] _stopWords =
         {
-            "a","an","and","also","all","are","as","at","be","been","by","but","for","from",
-            "have","has","had","he","in","is","it","its","more","new","not",
-            "of","on","page","part","that","the","this",
-            "to","s","was","were","will","with"
+            "a","an","and","also","all","are","as","at","be","been",
+            "by","but","for","from","have","has","had","he","in","is",
+            "it","its","more","my","new","not","of","on","or",
+            "page","part","that","the","this","to","s","she","was","were",
+            "will","with","i","you","they","up","so","if","would","make"
         };
 
         // 2x2500 random words from wikipedia
@@ -57,42 +43,54 @@ namespace stopwords
             "importance","listed","on","the","australian","register","of","the","national","estate","it","contains","an","endangered","community","of","fungi","some","species","of","which","have","still","not","been","classified","a","popular","caravan","park","and","campground","known","as","lane","cove","river","tourist","park","is","located","on","the","western","side","of","the","valley","above","the","river","the","lane","cove","river","is","the","site","of","many","old","trails","and","tracks","some","of","which","have","survived","from","logging","days","they","are","now","used","for","recreational","purposes","some","of","them","have","been","incorporated","into","the","great","north","walk","a","long","distance","walking","trail","from","sydney","to","newcastle","this","trail","passes","along","the","lane","cove","river","between","boronia","avenue","hunters","hill","and","thornleigh","oval","thornleigh","on","the","east","side","of","thornleigh","oval","the","trail","makes","use","of","lorna","pass","a","track","built","during","the","depression","of","the","s","to","provide","relief","work","from","to","the","early","s","the","swan","family","operated","a","picnic","area","called","fairyland","which","was","located","on","the","banks","of","the","river","upstream","from","epping","road","the","area","was","originally","a","market","garden","but","the","family","turned","it","into","a","picnic","area","when","they","realized","the","commercial","potential","facilities","were","developed","to","the","point","where","fairyland","had","its","own","footbridge","bbq","fireplaces","boat","swing","razzle","dazzle","ride","shelter","dance","hall","and","wharf","the","area","has","now","returned","to","nature","and","is","contained","within","the","lane","cove","national","park","harry","smith","was","a","businessman","who","owned","land","in","what","is","now","the","marsfield","area","smith","created","a","picnic","area","in","a","section","of","his","property","he","called","curzon","park","which","bordered","the","lane","cove","river","and","consisted","of","eighty","acres","of","bushland","the","picnic","area","has","long","since","returned","to","nature","but","a","set","of","stone","steps","can","still","be","seen","at","the","top","of","the","escarpment","above","the","river","it","is","amost","certain","that","smith","had","these","steps","built","to","provide","access","to","the","picnic","area","smith","also","had","a","quarry","in","the","area","near","the","present","location","of","talavera","road","from","which","he","obtained","the","stone","to","build","his","mansion","curzon","hall","the","latter","was","built","circa","and","is","located","at","the","intersection","of","balaclava","and","agincourt","roads","the","name","curzon","came","from","his","wife","s","name","isabella","curzon","webb","the","building","was","purchased","by","the","vincentian","fathers","in","and","turned","into","a","catholic","seminary","in","it","was","acquired","for","business","purposes","and","became","a","function","centre","steps","that","provided","access","to","harry","smith","s","picnic","area","lane","cove","river","at","fullers","bridge","chatswood","west","curzon","hall","archival","photo","of","fairyland","formation","known","as","whale","rock","outside","cheltenham","an","australian","brushturkey","in","the","national","park","steinunn","kristin","thordardottir","steinunn","krist","n","r","ard","ttir","born","april","in","reykjav","k","iceland","is","a","partner","at","beringer","finance","as","in","norway","previously","she","was","the","managing","director","of","glitnir","bank","in","london","uk","and","an","alternate","member","of","the","board","of","glitnir","bank","asa","in","norway","and","glitnir","sjodir","hf","in","iceland","steinunn","sits","on","the","board","of","the"
 
         };
-
-        private static HashSet<string> _stopWordsSet = new HashSet<string>(_stopWords);
-        private static long[] _stopWordsLongs = StringToLong(_stopWords);
-        private static HashSet<long> _stopWordsLongHashSet = new HashSet<long>(_stopWordsLongs);
-        private static FastHashSet<long> _stopWordsLongFastHashSet = new FastHashSet<long>(_stopWordsLongs);
-        private static LongHashSet _stopWordsLongLongHashSet = new LongHashSet(_stopWordsLongs);
-        private static SortedSet<long> _stopWordsLongSortedSet = new SortedSet<long>(_stopWordsLongs);
-        private static HashSet<long> _stopWordsLongSet2 = new HashSet<long>(_stopWordsLongs, new Int64EqualityComparer());
-
         private static char[][] _testWordsChars = _testWords.Select(s => s.ToCharArray()).ToArray();
 
-        //[Benchmark]
-        public int StringIteration()
+        private static HashSet<string> _stopWordsStringSet;
+        private static long[] _stopWordsLongs;
+        private static HashSet<long> _stopWordsLongHashSet;
+        private static StopWordSet _stopWordsCustomSet;
+        private static SortedSet<long> _stopWordsLongSortedSet;
+
+
+        [Params(5, 10, 20, 30, 40, 50)]
+        public int StopWordCount;
+
+        [GlobalSetup]
+        public void Setup()
         {
-            var wordCount = 0;
-            for (var i = 0; i < _testWords.Length; i++)
-            {
-                for (var t = 0; t < _stopWords.Length; t++)
-                {
-                    if (String.Compare(_testWords[i], _stopWords[t], true, CultureInfo.InvariantCulture) == 0)
-                    {
-                        wordCount += 1;
-                        break;
-                    }
-                }
-            }
-            return wordCount;
+            _stopWordsStringSet = new HashSet<string>(_stopWords.Take(StopWordCount));
+            _stopWordsLongs = StringToLong(_stopWords.Take(StopWordCount).ToArray());
+
+            _stopWordsLongHashSet = new HashSet<long>(_stopWordsLongs);
+            _stopWordsLongSortedSet = new SortedSet<long>(_stopWordsLongs);
+            _stopWordsCustomSet = new StopWordSet(_stopWordsLongs);
         }
 
-        [Benchmark(OperationsPerInvoke=5000)]
+        //[Benchmark]
+        //public int StringIteration()
+        //{
+        //    var wordCount = 0;
+        //    for (var i = 0; i < _testWords.Length; i++)
+        //    {
+        //        for (var t = 0; t < _stopWords.Length; t++)
+        //        {
+        //            if (String.Compare(_testWords[i], _stopWords[t], true, CultureInfo.InvariantCulture) == 0)
+        //            {
+        //                wordCount += 1;
+        //                break;
+        //            }
+        //        }
+        //    }
+        //    return wordCount;
+        //}
+
+        [Benchmark(Baseline = true, OperationsPerInvoke = 5000)]
         public int StringSet()
         {
             var wordCount = 0;
             for (var i = 0; i < _testWords.Length; i++)
             {
-                if (_stopWordsSet.Contains(_testWords[i]))
+                if (_stopWordsStringSet.Contains(_testWords[i]))
                 {
                     wordCount += 1;
                 }
@@ -100,7 +98,7 @@ namespace stopwords
             return wordCount;
         }
 
-        [Benchmark(OperationsPerInvoke=5000)]
+        [Benchmark(OperationsPerInvoke = 5000)]
         public unsafe int LongIteration()
         {
             var wordCount = 0;
@@ -131,7 +129,7 @@ namespace stopwords
 
         }
 
-        [Benchmark(OperationsPerInvoke=5000)]
+        [Benchmark(OperationsPerInvoke = 5000)]
         public unsafe int LongHashSet()
         {
             var wordCount = 0;
@@ -156,8 +154,8 @@ namespace stopwords
             return wordCount;
         }
 
-        [Benchmark(Baseline=true, OperationsPerInvoke=5000)]
-        public unsafe int LongFastHashSet()
+        [Benchmark(OperationsPerInvoke = 5000)]
+        public unsafe int LongBinarySearch()
         {
             var wordCount = 0;
             for (var i = 0; i < _testWords.Length; i++)
@@ -173,7 +171,7 @@ namespace stopwords
                     checkValue = *(long*)word;
                 }
 
-                if (_stopWordsLongFastHashSet.Contains(checkValue))
+                if (Array.BinarySearch(_stopWordsLongs, checkValue) > -1)
                 {
                     wordCount += 1;
                 }
@@ -181,32 +179,7 @@ namespace stopwords
             return wordCount;
         }
 
-        [Benchmark(OperationsPerInvoke=5000)]
-        public unsafe int LongLongHashSet()
-        {
-            var wordCount = 0;
-            for (var i = 0; i < _testWords.Length; i++)
-            {
-                if (_testWordsChars[i].Length > 4)
-                {
-                    continue;
-                }
-
-                long checkValue;
-                fixed (char* word = _testWordsChars[i])
-                {
-                    checkValue = *(long*)word;
-                }
-
-                if (_stopWordsLongLongHashSet.Contains(checkValue))
-                {
-                    wordCount += 1;
-                }
-            }
-            return wordCount;
-        }
-
-        //[Benchmark]
+        [Benchmark(OperationsPerInvoke = 5000)]
         public unsafe int LongTreeSet()
         {
             var wordCount = 0;
@@ -231,8 +204,8 @@ namespace stopwords
             return wordCount;
         }
 
-        //[Benchmark]
-        public unsafe int LongSetWithComparer()
+        [Benchmark(OperationsPerInvoke = 5000)]
+        public unsafe int StopWordSet()
         {
             var wordCount = 0;
             for (var i = 0; i < _testWords.Length; i++)
@@ -248,32 +221,7 @@ namespace stopwords
                     checkValue = *(long*)word;
                 }
 
-                if (_stopWordsLongSet2.Contains(checkValue))
-                {
-                    wordCount += 1;
-                }
-            }
-            return wordCount;
-        }
-
-        //[Benchmark]
-        public unsafe int LongBinarySearch()
-        {
-            var wordCount = 0;
-            for (var i = 0; i < _testWords.Length; i++)
-            {
-                if (_testWordsChars[i].Length > 4)
-                {
-                    continue;
-                }
-
-                long checkValue;
-                fixed (char* word = _testWordsChars[i])
-                {
-                    checkValue = *(long*)word;
-                }
-
-                if (Array.BinarySearch(_stopWordsLongs, checkValue) > -1)
+                if (_stopWordsCustomSet.Contains(checkValue))
                 {
                     wordCount += 1;
                 }
@@ -304,48 +252,26 @@ namespace stopwords
 
     }
 
-
     public class Program
     {
         static void Main(string[] args)
         {
-
-            //var config = ManualConfig.Create(DefaultConfig.Instance);
-            //.With(Job.Clr)
-            //.With(Job.Core);
-
-            //.With(HardwareCounter.BranchMispredictions,
-            //      HardwareCounter.BranchInstructions,
-            //      HardwareCounter.InstructionRetired);
-
             // benchmark
             var summary = BenchmarkRunner.Run<StopWordChecker>();
 
-            // simple test
+            // simple test - just to make sure they all find the same number of stopwords 
             var instance = new StopWordChecker();
 
-                var r2 = instance.LongHashSet();
-                var r3 = instance.LongFastHashSet();
-                var r4 = instance.LongLongHashSet();
+            var r1 = instance.StringSet();
+            var r2 = instance.LongIteration();
+            var r3 = instance.LongBinarySearch();
+            var r4 = instance.LongTreeSet();
+            var r5 = instance.LongHashSet();
+            var r6 = instance.StopWordSet();
 
-                if (r2 != r3 || r3 != r4)
-                {
-                    Console.WriteLine($"[ERROR] Return values do not match! {r2},{r3},{r4}");
-                }
-
-            return;
-
-            for (var i = 0; i < 50000; i++)
+            if (r1 != r2 || r2 != r3 || r3 != r4 || r4 != r5 || r5 != r6)
             {
-                //var r1 = instance.StringIteration();
-                //var r1 = instance.StringSet();
-                //var r3 = instance.LongIteration();
-                r2 = instance.LongHashSet();
-                r3 = instance.LongFastHashSet();
-                r4 = instance.LongLongHashSet();
-                //var r5 = instance.LongSetWithComparer();
-                //var r5 = instance.LongBinarySearch();
-
+                Console.WriteLine($"[ERROR] Return values do not match! {r1},{r2},{r3},{r4},{r5},{r6}");
             }
         }
     }
