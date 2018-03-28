@@ -23,7 +23,7 @@ namespace stopwords
             "by","but","for","from","have","has","had","he","in","is",
             "it","its","more","my","new","not","of","on","or",
             "page","part","that","the","this","to","s","she","was","were",
-            "will","with","i","you","they","up","so","if","would","make"
+            "will","with","i","you","they","up","so","if","ok","make"
         };
 
         // 2x2500 random words from wikipedia
@@ -52,7 +52,7 @@ namespace stopwords
         private static SortedSet<long> _stopWordsLongSortedSet;
 
 
-        [Params(5, 10, 20, 30, 40, 50)]
+        [Params(10, 20, 50)]
         public int StopWordCount;
 
         [GlobalSetup]
